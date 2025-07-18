@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GPS Lap Tracker</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+    #counter { font-size: 3em; margin: 20px 0; }
+    button { padding: 10px 20px; font-size: 1em; }
+  </style>
+</head>
+<body>
+  <h1>Lapangan Lari Tracker 🏃</h1>
+  <div id="status">Tekan tombol untuk mulai!</div>
+  <div id="counter">0 Putaran</div>
+  <button onclick="startTracking()">Mulai Lari</button>
+
+  <script>
+    let startPos = null;
+    let lapCount = 0;
+    const radiusThreshold = 15; // meter
+    const minLapDistance = 80;  // meter (jarak minimum satu putaran)
+
+    function startTracking() {
+      if (!navigator.geolocation) {
+        alert("Browser kamu tidak mendukung Geolocation");
+        return;
+      }
+
+      document.getElementById("status").textContent = "Sedang melacak lokasi...";
+      navigator.geolocation.watchPosition((pos) => {
+        const { latitude, longitude } = pos.coords;
+        const currentPos = { lat: latitude, lon: longitude };
+
+        if (!startPos) {
+          startPos = currentPos;
+          console.log("Titik awal disimpan:", startPos);
+        } else {
+          const distance = getDistance(startPos, currentPos);
+          document.getElementById("status").textContent = `Jarak ke titik start: ${distance.toFixed(1)} m`;
+
+          if (distance < radiusThreshold && pos.coords.speed > 0.5) {
+            lapCount++;
+            document.getElementById("counter").textContent = `${lapCount} Putaran`;
+            startPos = currentPos; // reset titik awal untuk putaran berikutnya
+          }
+        }
+      }, (err) => {
+        alert("Gagal melacak lokasi: " + err.message);
+      }, {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 5000
+      });
+    }
+
+    function getDistance(p1, p2) {
+      const R = 6371e3; // earth radius in meters
+      const φ1 = p1.lat * Math.PI / 180;
+      const φ2 = p2.lat * Math.PI / 180;
+      const Δφ = (p2.lat - p1.lat) * Math.PI / 180;
+      const Δλ = (p2.lon - p1.lon) * Math.PI / 180;
+
+      const a = Math.sin(Δφ/2) ** 2 +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return R * c;
+    }
+  </script>
+</body>
+</html>
