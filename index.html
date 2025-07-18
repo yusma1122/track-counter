@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Penghitung Putaran Lari</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    
     <style>
         * {
             margin: 0;
@@ -15,7 +19,7 @@
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 10px;
             color: white;
         }
 
@@ -25,52 +29,64 @@
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 30px;
+            padding: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
         h1 {
             text-align: center;
-            margin-bottom: 30px;
-            font-size: 24px;
+            margin-bottom: 20px;
+            font-size: 22px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .status {
             text-align: center;
-            margin-bottom: 20px;
-            padding: 15px;
+            margin-bottom: 15px;
+            padding: 12px;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 14px;
         }
 
         .lap-counter {
             text-align: center;
-            margin: 30px 0;
+            margin: 20px 0;
         }
 
         .lap-number {
-            font-size: 48px;
+            font-size: 36px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .lap-text {
-            font-size: 18px;
+            font-size: 16px;
             opacity: 0.9;
+        }
+
+        .map-container {
+            margin: 20px 0;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        #map {
+            height: 250px;
+            width: 100%;
         }
 
         .controls {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
         }
 
         button {
-            padding: 15px 20px;
-            font-size: 16px;
+            padding: 12px 15px;
+            font-size: 14px;
             font-weight: bold;
             border: none;
             border-radius: 10px;
@@ -106,26 +122,55 @@
             cursor: not-allowed;
         }
 
-        .info-box {
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .info-item {
             background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            font-size: 14px;
-            line-height: 1.5;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 12px;
         }
 
-        .accuracy {
-            text-align: center;
-            margin: 10px 0;
-            font-size: 14px;
+        .info-value {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .info-label {
             opacity: 0.8;
+            font-size: 10px;
         }
 
-        .distance-info {
-            text-align: center;
-            margin: 10px 0;
-            font-size: 14px;
+        .map-controls {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .map-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .map-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .map-btn.active {
+            background: #4CAF50;
         }
 
         .pulse {
@@ -142,7 +187,37 @@
             color: #ff6b6b;
             text-align: center;
             margin: 10px 0;
-            font-size: 14px;
+            font-size: 12px;
+        }
+
+        .legend {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 12px;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -159,12 +234,54 @@
             <div class="lap-text">Putaran</div>
         </div>
 
-        <div class="distance-info" id="distanceInfo">
-            Jarak dari start: - m
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-value" id="distanceValue">-</div>
+                <div class="info-label">Jarak dari Start (m)</div>
+            </div>
+            <div class="info-item">
+                <div class="info-value" id="accuracyValue">-</div>
+                <div class="info-label">Akurasi GPS (m)</div>
+            </div>
+            <div class="info-item">
+                <div class="info-value" id="speedValue">-</div>
+                <div class="info-label">Kecepatan (km/h)</div>
+            </div>
+            <div class="info-item">
+                <div class="info-value" id="totalDistanceValue">-</div>
+                <div class="info-label">Total Jarak (m)</div>
+            </div>
         </div>
 
-        <div class="accuracy" id="accuracy">
-            Akurasi GPS: -
+        <div class="map-controls">
+            <button class="map-btn active" id="followBtn" onclick="toggleFollow()">
+                📍 Ikuti Posisi
+            </button>
+            <button class="map-btn" id="centerBtn" onclick="centerMap()">
+                🎯 Ke Start
+            </button>
+            <button class="map-btn" id="fitBtn" onclick="fitTrack()">
+                🗺️ Fit Track
+            </button>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff0000;"></div>
+                <span>🚩 Titik Start</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #0066ff;"></div>
+                <span>Track Lari</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #00ff00;"></div>
+                <span>📍 Posisi Sekarang</span>
+            </div>
         </div>
 
         <div class="controls">
@@ -176,17 +293,20 @@
             </button>
         </div>
 
-        <div class="info-box">
+        <div class="instructions">
             <strong>Cara Penggunaan:</strong><br>
             1. Berdiri di titik start yang ingin dijadikan acuan<br>
             2. Tekan "Mulai Tracking" untuk menetapkan titik start<br>
             3. Mulai berlari, aplikasi akan menghitung putaran otomatis<br>
-            4. Putaran akan bertambah setiap kali Anda kembali ke titik start
+            4. Peta akan menampilkan track lari secara real-time
         </div>
 
         <div class="error" id="errorMsg"></div>
     </div>
 
+    <!-- Leaflet JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    
     <script>
         let startPosition = null;
         let currentPosition = null;
@@ -196,9 +316,43 @@
         let lastLapTime = 0;
         let isNearStart = false;
         let wasAwayFromStart = false;
+        let totalDistance = 0;
+        let lastPosition = null;
+        let currentSpeed = 0;
+        let followMode = true;
+
+        // Map variables
+        let map = null;
+        let startMarker = null;
+        let currentMarker = null;
+        let trackPolyline = null;
+        let startCircle = null;
+        let trackPoints = [];
 
         const THRESHOLD_DISTANCE = 20; // 20 meter untuk mendeteksi putaran
         const MIN_LAP_TIME = 30000; // 30 detik minimum antar putaran
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([-6.2088, 106.8456], 15);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Custom icons
+            const startIcon = L.divIcon({
+                html: '🚩',
+                iconSize: [25, 25],
+                className: 'start-icon'
+            });
+
+            const currentIcon = L.divIcon({
+                html: '📍',
+                iconSize: [25, 25],
+                className: 'current-icon'
+            });
+        }
 
         function updateStatus(message) {
             document.getElementById('status').textContent = message;
@@ -229,36 +383,142 @@
             }
         }
 
-        function updateDistanceInfo(distance) {
-            document.getElementById('distanceInfo').textContent = 
-                `Jarak dari start: ${Math.round(distance)} m`;
+        function updateInfoPanel(distance, accuracy, speed, totalDist) {
+            document.getElementById('distanceValue').textContent = Math.round(distance);
+            document.getElementById('accuracyValue').textContent = Math.round(accuracy);
+            document.getElementById('speedValue').textContent = speed.toFixed(1);
+            document.getElementById('totalDistanceValue').textContent = Math.round(totalDist);
         }
 
-        function updateAccuracy(accuracy) {
-            const accuracyElement = document.getElementById('accuracy');
-            let status = '';
-            if (accuracy <= 10) {
-                status = 'Sangat Baik';
-            } else if (accuracy <= 20) {
-                status = 'Baik';
-            } else if (accuracy <= 50) {
-                status = 'Cukup';
+        function updateMap() {
+            if (!map || !currentPosition) return;
+
+            const currentLatLng = [currentPosition.latitude, currentPosition.longitude];
+            
+            // Update current position marker
+            if (currentMarker) {
+                currentMarker.setLatLng(currentLatLng);
             } else {
-                status = 'Kurang Baik';
+                const currentIcon = L.divIcon({
+                    html: '📍',
+                    iconSize: [25, 25],
+                    className: 'current-icon'
+                });
+                currentMarker = L.marker(currentLatLng, {icon: currentIcon}).addTo(map);
             }
-            accuracyElement.textContent = `Akurasi GPS: ${Math.round(accuracy)}m (${status})`;
+
+            // Add point to track
+            trackPoints.push(currentLatLng);
+            
+            // Update track polyline
+            if (trackPolyline) {
+                trackPolyline.setLatLngs(trackPoints);
+            } else {
+                trackPolyline = L.polyline(trackPoints, {
+                    color: '#0066ff',
+                    weight: 3,
+                    opacity: 0.8
+                }).addTo(map);
+            }
+
+            // Follow mode
+            if (followMode) {
+                map.setView(currentLatLng, map.getZoom());
+            }
+        }
+
+        function setStartPoint() {
+            if (!startPosition || !map) return;
+
+            const startLatLng = [startPosition.latitude, startPosition.longitude];
+            
+            // Remove existing start marker and circle
+            if (startMarker) map.removeLayer(startMarker);
+            if (startCircle) map.removeLayer(startCircle);
+            
+            // Add start marker
+            const startIcon = L.divIcon({
+                html: '🚩',
+                iconSize: [30, 30],
+                className: 'start-icon'
+            });
+            startMarker = L.marker(startLatLng, {icon: startIcon}).addTo(map);
+            
+            // Add threshold circle
+            startCircle = L.circle(startLatLng, {
+                color: '#ff0000',
+                fillColor: '#ff0000',
+                fillOpacity: 0.1,
+                radius: THRESHOLD_DISTANCE
+            }).addTo(map);
+            
+            // Center map on start
+            map.setView(startLatLng, 18);
+        }
+
+        function toggleFollow() {
+            followMode = !followMode;
+            const btn = document.getElementById('followBtn');
+            if (followMode) {
+                btn.classList.add('active');
+                btn.textContent = '📍 Ikuti Posisi';
+                if (currentPosition) {
+                    map.setView([currentPosition.latitude, currentPosition.longitude], map.getZoom());
+                }
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '📍 Manual';
+            }
+        }
+
+        function centerMap() {
+            if (startPosition) {
+                map.setView([startPosition.latitude, startPosition.longitude], 18);
+            }
+        }
+
+        function fitTrack() {
+            if (trackPoints.length > 1) {
+                const bounds = L.latLngBounds(trackPoints);
+                map.fitBounds(bounds, {padding: [20, 20]});
+            }
+        }
+
+        function calculateSpeed(currentPos, lastPos, timeDiff) {
+            if (!lastPos || timeDiff === 0) return 0;
+            
+            const distance = calculateDistance(lastPos, currentPos);
+            const speed = (distance / timeDiff) * 3600; // m/s to km/h
+            return speed;
         }
 
         function handlePositionUpdate(position) {
+            const currentTime = Date.now();
+            const timeDiff = lastPosition ? (currentTime - lastPosition.timestamp) / 1000 : 0;
+            
             currentPosition = position.coords;
             
-            updateAccuracy(currentPosition.accuracy);
+            // Calculate speed
+            if (lastPosition && timeDiff > 0) {
+                currentSpeed = calculateSpeed(currentPosition, lastPosition.coords, timeDiff);
+                
+                // Calculate total distance
+                const segmentDistance = calculateDistance(lastPosition.coords, currentPosition);
+                totalDistance += segmentDistance;
+            }
+            
+            lastPosition = {
+                coords: currentPosition,
+                timestamp: currentTime
+            };
+            
+            // Update map
+            updateMap();
             
             if (startPosition) {
                 const distance = calculateDistance(startPosition, currentPosition);
-                updateDistanceInfo(distance);
+                updateInfoPanel(distance, currentPosition.accuracy, currentSpeed, totalDistance);
                 
-                const currentTime = Date.now();
                 const isCurrentlyNearStart = distance <= THRESHOLD_DISTANCE;
                 
                 // Deteksi putaran: harus pernah menjauh dari start, lalu kembali dekat
@@ -333,6 +593,11 @@
                         startPosition = position.coords;
                         isTracking = true;
                         lastLapTime = Date.now();
+                        totalDistance = 0;
+                        trackPoints = [];
+                        
+                        // Set start point on map
+                        setStartPoint();
                         
                         updateStatus('Titik start ditetapkan - Siap berlari!');
                         startBtn.textContent = 'Stop Tracking';
@@ -384,14 +649,34 @@
             lastLapTime = 0;
             isNearStart = false;
             wasAwayFromStart = false;
+            totalDistance = 0;
+            lastPosition = null;
+            currentSpeed = 0;
+            trackPoints = [];
+            
+            // Clear map
+            if (map) {
+                if (startMarker) map.removeLayer(startMarker);
+                if (currentMarker) map.removeLayer(currentMarker);
+                if (trackPolyline) map.removeLayer(trackPolyline);
+                if (startCircle) map.removeLayer(startCircle);
+                
+                startMarker = null;
+                currentMarker = null;
+                trackPolyline = null;
+                startCircle = null;
+            }
             
             updateLapCounter();
             updateStatus('Tekan "Mulai" untuk memulai');
             updateError('');
-            
-            document.getElementById('distanceInfo').textContent = 'Jarak dari start: - m';
-            document.getElementById('accuracy').textContent = 'Akurasi GPS: -';
+            updateInfoPanel(0, 0, 0, 0);
         }
+
+        // Initialize when page loads
+        window.addEventListener('load', function() {
+            initMap();
+        });
 
         // Prevent screen from sleeping
         if ('wakeLock' in navigator) {
