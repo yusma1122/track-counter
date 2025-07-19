@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penghitung Putaran Lari</title>
+    <title>Running Lap Counter</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
@@ -219,46 +219,74 @@
             font-size: 12px;
             line-height: 1.4;
         }
+
+        .credits {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 11px;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .credits a {
+            color: #64b5f6;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+
+        .credits a:hover {
+            color: #90caf9;
+            text-decoration: underline;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🏃‍♂️ Penghitung Putaran</h1>
+        <h1>🏃‍♂️ Running Lap Counter</h1>
         
         <div class="status" id="status">
-            Tekan "Mulai" untuk memulai
+            Press "Start" to begin
         </div>
 
         <div class="lap-counter">
             <div class="lap-number" id="lapNumber">0</div>
-            <div class="lap-text">Putaran</div>
+            <div class="lap-text">Laps</div>
         </div>
 
         <div class="info-grid">
             <div class="info-item">
                 <div class="info-value" id="distanceValue">-</div>
-                <div class="info-label">Jarak dari Start (m)</div>
+                <div class="info-label">Distance from Start (m)</div>
             </div>
             <div class="info-item">
                 <div class="info-value" id="accuracyValue">-</div>
-                <div class="info-label">Akurasi GPS (m)</div>
+                <div class="info-label">GPS Accuracy (m)</div>
             </div>
             <div class="info-item">
                 <div class="info-value" id="speedValue">-</div>
-                <div class="info-label">Kecepatan (km/h)</div>
+                <div class="info-label">Speed (km/h)</div>
             </div>
             <div class="info-item">
                 <div class="info-value" id="totalDistanceValue">-</div>
-                <div class="info-label">Total Jarak (m)</div>
+                <div class="info-label">Total Distance (m)</div>
             </div>
         </div>
 
         <div class="map-controls">
             <button class="map-btn active" id="followBtn" onclick="toggleFollow()">
-                📍 Ikuti Posisi
+                📍 Follow Position
             </button>
             <button class="map-btn" id="centerBtn" onclick="centerMap()">
-                🎯 Ke Start
+                🎯 To Start
             </button>
             <button class="map-btn" id="fitBtn" onclick="fitTrack()">
                 🗺️ Fit Track
@@ -272,21 +300,21 @@
         <div class="legend">
             <div class="legend-item">
                 <div class="legend-color" style="background: #ff0000;"></div>
-                <span>🚩 Titik Start</span>
+                <span>🚩 Start Point</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #0066ff;"></div>
-                <span>Track Lari</span>
+                <span>Running Track</span>
             </div>
             <div class="legend-item">
                 <div class="legend-color" style="background: #00ff00;"></div>
-                <span>📍 Posisi Sekarang</span>
+                <span>📍 Current Position</span>
             </div>
         </div>
 
         <div class="controls">
             <button id="startBtn" class="btn-primary" onclick="startTracking()">
-                Mulai Tracking
+                Start Tracking
             </button>
             <button id="resetBtn" class="btn-secondary" onclick="resetCounter()">
                 Reset
@@ -294,11 +322,20 @@
         </div>
 
         <div class="instructions">
-            <strong>Cara Penggunaan:</strong><br>
-            1. Berdiri di titik start yang ingin dijadikan acuan<br>
-            2. Tekan "Mulai Tracking" untuk menetapkan titik start<br>
-            3. Mulai berlari, aplikasi akan menghitung putaran otomatis<br>
-            4. Peta akan menampilkan track lari secara real-time
+            <strong>How to Use:</strong><br>
+            1. Stand at the starting point you want to use as reference<br>
+            2. Press "Start Tracking" to set the starting point<br>
+            3. Start running, the app will automatically count laps<br>
+            4. The map will display your running track in real-time
+        </div>
+
+        <div class="credits">
+            <strong>👨‍💻 Created by Yusma Rahman</strong><br>
+            <div class="social-links">
+                <a href="https://linkedin.com/in/yusma-rahman" target="_blank">🔗 LinkedIn</a>
+                <a href="https://instagram.com/yusma.rahman" target="_blank">📸 Instagram</a>
+            </div>
+            <small>Running Lap Counter v1.0 | GPS-Based Lap Detection</small>
         </div>
 
         <div class="error" id="errorMsg"></div>
@@ -329,8 +366,8 @@
         let startCircle = null;
         let trackPoints = [];
 
-        const THRESHOLD_DISTANCE = 20; // 20 meter untuk mendeteksi putaran
-        const MIN_LAP_TIME = 30000; // 30 detik minimum antar putaran
+        const THRESHOLD_DISTANCE = 20; // 20 meters to detect lap completion
+        const MIN_LAP_TIME = 30000; // 30 seconds minimum between laps
 
         // Initialize map
         function initMap() {
@@ -339,19 +376,6 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
-
-            // Custom icons
-            const startIcon = L.divIcon({
-                html: '🚩',
-                iconSize: [25, 25],
-                className: 'start-icon'
-            });
-
-            const currentIcon = L.divIcon({
-                html: '📍',
-                iconSize: [25, 25],
-                className: 'current-icon'
-            });
         }
 
         function updateStatus(message) {
@@ -363,7 +387,7 @@
         }
 
         function calculateDistance(pos1, pos2) {
-            const R = 6371000; // Radius bumi dalam meter
+            const R = 6371000; // Earth's radius in meters
             const dLat = (pos2.latitude - pos1.latitude) * Math.PI / 180;
             const dLon = (pos2.longitude - pos1.longitude) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -461,7 +485,7 @@
             const btn = document.getElementById('followBtn');
             if (followMode) {
                 btn.classList.add('active');
-                btn.textContent = '📍 Ikuti Posisi';
+                btn.textContent = '📍 Follow Position';
                 if (currentPosition) {
                     map.setView([currentPosition.latitude, currentPosition.longitude], map.getZoom());
                 }
@@ -521,7 +545,7 @@
                 
                 const isCurrentlyNearStart = distance <= THRESHOLD_DISTANCE;
                 
-                // Deteksi putaran: harus pernah menjauh dari start, lalu kembali dekat
+                // Lap detection: must have been away from start, then return near it
                 if (isCurrentlyNearStart && wasAwayFromStart && 
                     (currentTime - lastLapTime) > MIN_LAP_TIME) {
                     
@@ -530,28 +554,28 @@
                     lastLapTime = currentTime;
                     wasAwayFromStart = false;
                     
-                    updateStatus(`Putaran ke-${lapCount} selesai! 🎉`);
+                    updateStatus(`Lap ${lapCount} completed! 🎉`);
                     
-                    // Vibrate jika didukung
+                    // Vibrate if supported
                     if (navigator.vibrate) {
                         navigator.vibrate([200, 100, 200]);
                     }
                 }
                 
-                // Tandai bahwa sudah pernah menjauh dari start
+                // Mark that we've been away from start
                 if (distance > THRESHOLD_DISTANCE) {
                     wasAwayFromStart = true;
                 }
                 
-                // Update status berdasarkan posisi
+                // Update status based on position
                 if (isCurrentlyNearStart) {
                     if (lapCount === 0) {
-                        updateStatus('Di titik start - Mulai berlari!');
+                        updateStatus('At starting point - Start running!');
                     } else {
-                        updateStatus(`Kembali ke start - Putaran: ${lapCount}`);
+                        updateStatus(`Back to start - Laps: ${lapCount}`);
                     }
                 } else {
-                    updateStatus(`Tracking aktif - Jarak: ${Math.round(distance)}m`);
+                    updateStatus(`Tracking active - Distance: ${Math.round(distance)}m`);
                 }
             }
         }
@@ -560,34 +584,34 @@
             let errorMessage = '';
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    errorMessage = 'Akses GPS ditolak. Mohon izinkan akses lokasi.';
+                    errorMessage = 'GPS access denied. Please allow location access.';
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    errorMessage = 'Informasi lokasi tidak tersedia.';
+                    errorMessage = 'Location information unavailable.';
                     break;
                 case error.TIMEOUT:
-                    errorMessage = 'Timeout mendapatkan lokasi.';
+                    errorMessage = 'Location request timed out.';
                     break;
                 default:
-                    errorMessage = 'Error tidak diketahui.';
+                    errorMessage = 'Unknown error occurred.';
             }
             updateError(errorMessage);
-            updateStatus('Error mendapatkan lokasi GPS');
+            updateStatus('Error getting GPS location');
         }
 
         function startTracking() {
             if (!navigator.geolocation) {
-                updateError('Geolocation tidak didukung oleh browser ini.');
+                updateError('Geolocation is not supported by this browser.');
                 return;
             }
 
             const startBtn = document.getElementById('startBtn');
             
             if (!isTracking) {
-                updateStatus('Mencari sinyal GPS...');
+                updateStatus('Searching for GPS signal...');
                 updateError('');
                 
-                // Dapatkan posisi awal
+                // Get initial position
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         startPosition = position.coords;
@@ -599,11 +623,11 @@
                         // Set start point on map
                         setStartPoint();
                         
-                        updateStatus('Titik start ditetapkan - Siap berlari!');
+                        updateStatus('Starting point set - Ready to run!');
                         startBtn.textContent = 'Stop Tracking';
                         startBtn.className = 'btn-secondary';
                         
-                        // Mulai tracking real-time
+                        // Start real-time tracking
                         watchId = navigator.geolocation.watchPosition(
                             handlePositionUpdate,
                             handlePositionError,
@@ -634,10 +658,10 @@
             
             isTracking = false;
             const startBtn = document.getElementById('startBtn');
-            startBtn.textContent = 'Mulai Tracking';
+            startBtn.textContent = 'Start Tracking';
             startBtn.className = 'btn-primary';
             
-            updateStatus('Tracking dihentikan');
+            updateStatus('Tracking stopped');
         }
 
         function resetCounter() {
@@ -668,7 +692,7 @@
             }
             
             updateLapCounter();
-            updateStatus('Tekan "Mulai" untuk memulai');
+            updateStatus('Press "Start" to begin');
             updateError('');
             updateInfoPanel(0, 0, 0, 0);
         }
@@ -686,7 +710,7 @@
                 try {
                     wakeLock = await navigator.wakeLock.request('screen');
                 } catch (err) {
-                    console.log('Wake lock tidak didukung');
+                    console.log('Wake lock not supported');
                 }
             }
             
